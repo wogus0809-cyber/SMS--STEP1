@@ -31,7 +31,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55}
-.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 120px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 210px}
 header{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
 h1{font-size:1.45rem;margin:0;letter-spacing:-.02em;text-wrap:balance}
 .lead{margin:0;color:var(--muted);font-size:.92rem}
@@ -86,7 +86,19 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
 .status{font-size:.85rem;color:var(--accent);font-weight:700;min-height:1.2em;margin:0}
 
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);
-  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bar .wide{grid-column:span 2}
+.btn.secondary{background:var(--accent-soft);color:var(--ink);border-color:var(--accent)}
+.card-att{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px}
+.card-att img{width:120px;height:auto;border-radius:6px;border:1px solid var(--line)}
+.card-att .meta{display:flex;flex-direction:column;gap:6px;font-size:.82rem;color:var(--muted);min-width:0}
+details.tpl{border:1px dashed var(--line);border-radius:10px;padding:10px 12px}
+details.tpl summary{cursor:pointer;font-weight:700;font-size:.9rem}
+details.tpl[open] summary{margin-bottom:10px}
+#tpl{font-size:.9rem;line-height:1.6}
+.bul{display:flex;flex-direction:column;gap:6px}
+.bul label{display:flex;gap:8px;align-items:flex-start;font-size:.9rem;cursor:pointer;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.bul input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent);flex:none}
 @media (prefers-reduced-motion:no-preference){button,.btn,.chip{transition:background .15s,border-color .15s}}
 </style>
 </head>
@@ -95,7 +107,7 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
 <div class="wrap">
   <header>
     <h1>자동화 문자 1차 단계</h1>
-    <p class="lead">고객을 고르고, 보낼 단계와 연락할 거리를 누르면 문구가 만들어집니다. 문자 앱 열기를 누르면 내 번호로 보낼 수 있어요.</p>
+    <p class="lead">고객을 고르고, 보낼 단계와 연락할 거리를 누르면 문구가 만들어집니다. 1차 연락은 "명함+문구 보내기"로 명함 사진과 문구를 함께 보낼 수 있어요.</p>
   </header>
 
   <div class="grid">
@@ -135,6 +147,21 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
         <div class="stepgroup"><span class="label">약속 잡은 뒤</span><div class="chips" id="g-after"></div></div>
       </div>
 
+      <div class="field" id="bulletBox">
+        <span class="label">이 고객에게 넣을 내용 (해당하는 것만 체크하세요)</span>
+        <div class="bul" id="bullets"></div>
+      </div>
+
+      <details class="tpl" id="tplBox">
+        <summary>1차 문구 고치기</summary>
+        <div class="field">
+          <label class="label" for="tpl">1차 문구 (이 휴대폰에 저장돼요)</label>
+          <textarea id="tpl" rows="12"></textarea>
+          <p class="hint">{고객} 자리에 고객 이름, {내이름} 자리에 내 이름이 들어가요. "·"로 시작하는 줄은 위에서 고객마다 넣고 뺄 수 있어요.</p>
+          <div class="row"><button type="button" class="small" id="tplReset">처음 문구로 되돌리기</button></div>
+        </div>
+      </details>
+
       <div class="field" id="hookBox">
         <span class="label">전산에서 본 연락할 거리 (강한 것부터, 첫 문자엔 2개까지 들어가요)</span>
         <div class="chips" id="hooks"></div>
@@ -156,6 +183,13 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
 
       <div class="phone">
         <div class="to"><span>받는 사람 <b id="toLabel">번호를 입력하세요</b></span><button type="button" class="small" id="copyPhone">번호 복사</button></div>
+        <div class="card-att" id="cardAtt">
+          <img src="card.jpg" alt="조재현 명함" id="cardImg">
+          <div class="meta">
+            <label class="toggle"><input type="checkbox" id="attach" checked><span>명함 사진 같이 보내기</span></label>
+            <button type="button" class="small" id="copyCard">명함 이미지 복사 (PC용)</button>
+          </div>
+        </div>
         <label class="label" for="msg">보낼 문구 (직접 고쳐도 돼요)</label>
         <textarea id="msg" rows="10"></textarea>
         <div class="meter"><span id="bytes"></span><span class="kind" id="kind">SMS</span></div>
@@ -167,7 +201,8 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
 </div>
 
 <div class="bar">
-  <a class="btn primary" id="send" href="#" aria-disabled="true">문자 앱 열기</a>
+  <button type="button" class="btn primary wide" id="share">명함+문구 보내기</button>
+  <a class="btn primary wide" id="send" href="#" aria-disabled="true">문자 앱 열기</a>
   <button type="button" id="copy">문구 복사</button>
   <button type="button" id="done">보냄 표시</button>
 </div>
@@ -196,6 +231,22 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
     {id:'overlap', label:'보장 겹침·보험료 부담', first:'보장이 겹쳐 보이는 부분이 있어요', sum:'보장이 겹치는 부분이 있어서 보험료를 점검해 볼 여지가 있어요'}
   ];
   const NUM = ['①','②','③','④','⑤','⑥','⑦'];
+  const DEFAULT_TPL = `안녕하세요 {고객}님, 굿리치 {내이름} 입니다.
+예전에 굿리치에서 보험 조회를 해두신 기록이 있어, 가입하신 보험을 정리한 결과지가 있어 연락드렸어요.
+살펴보니 이런 부분이 보여요.
+· 보장이 겹쳐 보이는 부분이 있어요
+· 보험료가 높은 편이에요
+· 보험료 대비 받으시는 보장이 부족해요
+· 보험 해지가 아닌 필요 없는 부분만 삭제하셔도 환급금이 나오실 수 있어요
+문자로 간단히 요약해 보내드릴까요? 원하시면 "네"라고만 답장 주세요.
+수신을 원치 않으시면 "거부"라고 답장 주세요.`;
+  const TPL_KEY = 'sms-helper-tpl-first';
+  let tpl = DEFAULT_TPL;
+  try{ const t = localStorage.getItem(TPL_KEY); if(t) tpl = t; }catch(e){}
+  const bulletOff = new Set();   // indexes of "·" lines unchecked for the current customer
+  const bulletLines = () => tpl.split('\n').map((l,i)=>({l,i})).filter(o=>/^\s*[·•\-]/.test(o.l));
+  let cardFile = null;
+  fetch('card.jpg').then(r=>r.ok?r.blob():null).then(b=>{ if(b) cardFile = new File([b],'조재현_명함.jpg',{type:'image/jpeg'}); }).catch(()=>{});
 
   const st = {
     queue:[
@@ -207,6 +258,7 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
   };
 
   // remember only the sender name
+  $('me').value = '조재현';
   try{ const m = localStorage.getItem('sms-helper-me'); if(m) $('me').value = m; }catch(e){}
 
   function fmtPhone(v){
@@ -227,6 +279,11 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
     let t;
     switch(st.step){
       case 'first': {
+        const who = $('name').value.trim() || '고객';
+        t = tpl.split('\n').filter((l,i)=>!(/^\s*[·•\-]/.test(l) && bulletOff.has(i))).join('\n')
+               .replaceAll('{고객}', who).replaceAll('{내이름}', m);
+        break; }
+      case 'first_old': {
         const top = hs.slice(0,2);
         t = `안녕하세요 ${n}, 굿리치 ${m} 매니저입니다.\n예전에 굿리치에서 보험 조회를 해두신 기록이 있어, 가입하신 보험을 정리한 결과지가 있어 연락드렸어요.\n`;
         t += top.length ? `살펴보니 이런 부분이 보여요.\n${top.map(h=>'· '+h.first).join('\n')}\n` : `중복되거나 빠진 보장이 있는지 한눈에 보실 수 있어요.\n`;
@@ -256,7 +313,7 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
         break;
     }
     const s = stepOf(st.step);
-    if(s.ad && $('ad').checked) t = `(광고) ${t}\n수신을 원치 않으시면 "거부"라고 답장 주세요.`;
+    if(s.ad && $('ad').checked){ t = `(광고) ${t}`; if(!t.includes('거부')) t += `\n수신을 원치 않으시면 "거부"라고 답장 주세요.`; }
     return t.replace(/ {2,}/g,' ').replace(/ 에서/,'에서');
   }
 
@@ -270,7 +327,8 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
   function refreshMeter(){
     const b = bytes($('msg').value);
     $('bytes').textContent = `${b.toLocaleString()} / ${b<=90?90:2000} byte`;
-    $('kind').textContent = b<=90 ? 'SMS' : (b<=2000 ? 'LMS 장문' : '너무 길어요');
+    const mms = st.step === 'first' && $('attach').checked;
+    $('kind').textContent = mms ? 'MMS (사진 포함)' : (b<=90 ? 'SMS' : (b<=2000 ? 'LMS 장문' : '너무 길어요'));
   }
   function refreshSend(){
     const d = digits($('phone').value);
@@ -287,10 +345,23 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
         `<label class="chip"><input type="radio" name="step" value="${s.id}" ${s.id===st.step?'checked':''}>${s.label}${s.d?` <span class="d">${s.d}</span>`:''}</label>`).join('');
     });
     const showHooks = ['first','summary'].includes(st.step);
-    $('hookBox').hidden = !showHooks;
+    $('hookBox').hidden = st.step !== 'summary';
+    const isFirst = st.step === 'first';
+    $('bulletBox').hidden = !isFirst; $('tplBox').hidden = !isFirst; $('cardAtt').hidden = !isFirst;
+    refreshBar();
     $('slotBox').hidden = !['summary','cost'].includes(st.step);
     $('remindBox').hidden = st.step!=='remind';
     $('adToggle').hidden = !stepOf(st.step).ad;
+  }
+  function renderBullets(){
+    $('bullets').innerHTML = bulletLines().map(o=>`<label><input type="checkbox" data-i="${o.i}" ${bulletOff.has(o.i)?'':'checked'}><span>${esc(o.l.replace(/^\s*[·•\-]\s*/,''))}</span></label>`).join('') || '<p class="hint">"·"로 시작하는 줄이 없어요.</p>';
+  }
+  function refreshBar(){
+    const withCard = st.step === 'first' && $('attach').checked;
+    $('share').hidden = !withCard;
+    $('send').textContent = withCard ? '문자만 보내기 (사진 없이)' : '문자 앱 열기';
+    $('send').classList.toggle('secondary', withCard);
+    $('send').classList.toggle('primary', !withCard);
   }
   function renderHooks(){
     $('hooks').innerHTML = HOOKS.map(h=>`<label class="chip"><input type="checkbox" value="${h.id}" ${st.hooks.has(h.id)?'checked':''}>${h.label}</label>`).join('');
@@ -309,6 +380,7 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
   function load(id, keepStep){
     const c = st.queue.find(x=>x.id===id); if(!c) return;
     st.cur = id; $('name').value = c.name; $('phone').value = c.phone;
+    bulletOff.clear(); renderBullets();
     // jump to the next sequence step this customer hasn't received
     const next = ['first','second','last'].find(s=>!c.sent[s]);
     if(!keepStep && next && ['first','second','last'].includes(st.step)) st.step = next;
@@ -326,10 +398,38 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
     if(e.target.name==='step'){ st.step = e.target.value; renderSteps(); refreshMsg(); }
     if(e.target.closest('#hooks')){ e.target.checked ? st.hooks.add(e.target.value) : st.hooks.delete(e.target.value); refreshMsg(); }
     if(e.target.id==='ad') refreshMsg();
+    if(e.target.closest('#bullets')){ const i=+e.target.dataset.i; e.target.checked ? bulletOff.delete(i) : bulletOff.add(i); refreshMsg(); }
+    if(e.target.id==='attach'){ refreshBar(); refreshMeter(); }
   });
   ['name','opt1','opt2','when','place'].forEach(id=>$(id).addEventListener('input', refreshMsg));
   $('me').addEventListener('input', ()=>{ try{localStorage.setItem('sms-helper-me',$('me').value.trim())}catch(e){} refreshMsg(); });
   $('phone').addEventListener('input', refreshSend);
+  $('tpl').value = tpl;
+  $('tpl').addEventListener('input', ()=>{ tpl = $('tpl').value; try{localStorage.setItem(TPL_KEY,tpl)}catch(e){} bulletOff.clear(); renderBullets(); refreshMsg(); });
+  $('tplReset').addEventListener('click', ()=>{ tpl = DEFAULT_TPL; $('tpl').value = tpl; try{localStorage.removeItem(TPL_KEY)}catch(e){} bulletOff.clear(); renderBullets(); refreshMsg(); say('처음 문구로 되돌렸어요.'); });
+
+  $('share').addEventListener('click', async ()=>{
+    const d = digits($('phone').value);
+    if(d.length<10){ say('휴대폰 번호를 먼저 입력하세요.'); return; }
+    if(!cardFile){ say('명함 이미지를 불러오는 중이에요. 잠시 후 다시 눌러주세요.'); return; }
+    const data = { files:[cardFile], text:$('msg').value };
+    if(!(navigator.canShare && navigator.canShare(data))){
+      say('이 브라우저는 사진 공유를 지원하지 않아요. "문자만 보내기"를 쓰거나, PC라면 "명함 이미지 복사" 후 붙여넣으세요.'); return; }
+    try{ navigator.clipboard && navigator.clipboard.writeText(fmtPhone(d)).catch(()=>{}); }catch(e){}
+    try{
+      await navigator.share(data);
+      say('메시지 앱의 받는 사람에 번호를 붙여넣고 보내세요(번호는 복사해뒀어요). 보냈다면 "보냄 표시"를 눌러주세요.');
+    }catch(e){ if(e && e.name==='AbortError') say('공유를 취소했어요.'); else say('공유가 안 됐어요. "문자만 보내기"를 쓰거나 "문구 복사"로 보내세요.'); }
+  });
+  $('copyCard').addEventListener('click', async ()=>{
+    try{
+      const img = $('cardImg'); const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img,0,0);
+      const blob = await new Promise(r=>c.toBlob(r,'image/png'));
+      await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+      say('명함 이미지를 복사했어요. 메시지 창에 붙여넣으세요(Ctrl+V).');
+    }catch(e){ say('이미지 복사가 막혀 있어요. 명함 사진을 길게 누르거나 우클릭해서 저장한 뒤 첨부하세요.'); }
+  });
   $('phone').addEventListener('blur', ()=>{ $('phone').value = fmtPhone($('phone').value); refreshSend(); });
   $('msg').addEventListener('input', ()=>{ refreshMeter(); refreshSend(); });
 
@@ -374,7 +474,7 @@ button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
   function nightCheck(){ const h = new Date().getHours(); $('night').hidden = !(h>=21 || h<8); }
   nightCheck(); setInterval(nightCheck, 60000);
 
-  renderHooks(); renderSteps(); renderQueue(); load(st.cur);
+  renderHooks(); renderBullets(); renderSteps(); renderQueue(); load(st.cur);
 })();
 </script>
 </body>
