@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
+<title>자동화 문자 1차 단계</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: phone-first single column; at desktop width the customer queue sits left, the message composer right. A fixed action bar holds send/copy on phones. */
+:root{
+  --bg:#F2F5F9; --surface:#FFFFFF; --ink:#13233F; --muted:#5B6880; --line:#DAE1EC;
+  --accent:#12806F; --accent-ink:#FFFFFF; --accent-soft:#E0F2EE;
+  --warn:#A4520E; --warn-soft:#FCEFE1; --bubble:#E7EDF6; --chip:#EEF2F8;
+  --font:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1521; --surface:#162032; --ink:#E6ECF6; --muted:#98A4BA; --line:#2A3850;
+  --accent:#3CC4AD; --accent-ink:#06221D; --accent-soft:#12332E;
+  --warn:#F0A55F; --warn-soft:#3A2916; --bubble:#22314B; --chip:#1E2A40; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1521; --surface:#162032; --ink:#E6ECF6; --muted:#98A4BA; --line:#2A3850;
+  --accent:#3CC4AD; --accent-ink:#06221D; --accent-soft:#12332E;
+  --warn:#F0A55F; --warn-soft:#3A2916; --bubble:#22314B; --chip:#1E2A40; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 120px}
+header{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
+h1{font-size:1.45rem;margin:0;letter-spacing:-.02em;text-wrap:balance}
+.lead{margin:0;color:var(--muted);font-size:.92rem}
+.grid{display:grid;gap:16px}
+@media (min-width:860px){.grid{grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:start}.wrap{padding-block:28px 48px}.bar{position:static!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2{font-size:1rem;margin:0;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.label{font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>.field{flex:1 1 140px}
+input[type=text],input[type=tel],textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{resize:vertical}
+input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible,label.chip:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+button,.btn{font:inherit;font-weight:700;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 12px;white-space:nowrap;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px}
+button.small{min-height:34px;padding:6px 10px;font-size:.82rem;font-weight:500}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary[aria-disabled=true]{opacity:.45;pointer-events:none}
+
+/* queue */
+.queue{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:340px;overflow:auto}
+.queue li button{width:100%;justify-content:space-between;font-weight:500;text-align:left;background:var(--bg)}
+.queue li button[aria-current=true]{border-color:var(--accent);background:var(--accent-soft)}
+.qname{font-weight:700}
+.qphone{font-family:var(--mono);font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.qleft{display:flex;flex-direction:column;min-width:0}
+.ticks{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.tick{font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--chip);color:var(--muted)}
+.tick.done{background:var(--accent);color:var(--accent-ink)}
+.example{font-size:.7rem;font-weight:700;color:var(--warn);background:var(--warn-soft);padding:2px 8px;border-radius:999px}
+
+/* steps */
+.steps{display:flex;flex-direction:column;gap:10px}
+.stepgroup{display:flex;flex-direction:column;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.86rem;padding:7px 12px;border-radius:999px;background:var(--chip);border:1px solid transparent;cursor:pointer;user-select:none}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip:has(input:checked){background:var(--accent-soft);border-color:var(--accent);color:var(--ink);font-weight:700}
+.chip .d{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+
+/* message preview */
+.phone{background:var(--bg);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.to{font-size:.8rem;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.to b{font-family:var(--mono);color:var(--ink);user-select:all}
+#msg{background:var(--bubble);border:0;border-radius:16px 16px 4px 16px;min-height:220px;line-height:1.6}
+.meter{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--muted);gap:8px;flex-wrap:wrap}
+.meter .kind{font-family:var(--mono);font-weight:500;padding:2px 8px;border-radius:6px;background:var(--chip);color:var(--ink)}
+.toggle{display:flex;align-items:flex-start;gap:8px;font-size:.88rem;cursor:pointer}
+.toggle input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent)}
+.notice{border-radius:10px;padding:10px 12px;font-size:.85rem;background:var(--warn-soft);color:var(--ink);border-left:4px solid var(--warn)}
+.status{font-size:.85rem;color:var(--accent);font-weight:700;min-height:1.2em;margin:0}
+
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+@media (prefers-reduced-motion:no-preference){button,.btn,.chip{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>자동화 문자 1차 단계</h1>
+    <p class="lead">고객을 고르고, 보낼 단계와 연락할 거리를 누르면 문구가 만들어집니다. 문자 앱 열기를 누르면 내 번호로 보낼 수 있어요.</p>
+  </header>
+
+  <div class="grid">
+    <!-- left: me + queue -->
+    <section class="panel" aria-labelledby="q-h">
+      <div class="field">
+        <label class="label" for="me">내 이름 (문자에 들어가요)</label>
+        <input type="text" id="me" placeholder="예: 홍길동" autocomplete="name">
+      </div>
+
+      <h2 id="q-h">오늘 보낼 고객 <span class="example" id="exampleTag">예시 데이터</span></h2>
+      <ul class="queue" id="queue"></ul>
+
+      <div class="field">
+        <label class="label" for="bulk">고객 한꺼번에 넣기</label>
+        <textarea id="bulk" rows="3" placeholder="한 줄에 한 명씩: 이름 번호&#10;예) 김정희 010-1234-5678"></textarea>
+        <div class="row">
+          <button type="button" id="addBulk">목록에 추가</button>
+          <button type="button" id="clearAll">목록 비우기</button>
+        </div>
+        <p class="hint">고객 정보는 이 화면에만 있고 어디에도 저장되지 않아요. 새로고침하면 목록이 사라집니다.</p>
+      </div>
+    </section>
+
+    <!-- right: composer -->
+    <section class="panel" aria-labelledby="c-h">
+      <h2 id="c-h">문자 만들기</h2>
+
+      <div class="row">
+        <div class="field"><label class="label" for="name">고객 이름</label><input type="text" id="name" placeholder="김정희"></div>
+        <div class="field"><label class="label" for="phone">휴대폰 번호</label><input type="tel" id="phone" inputmode="numeric" placeholder="010-0000-0000"></div>
+      </div>
+
+      <div class="steps" role="radiogroup" aria-label="보낼 단계">
+        <div class="stepgroup"><span class="label">연락 순서</span><div class="chips" id="g-seq"></div></div>
+        <div class="stepgroup"><span class="label">답장이 왔을 때</span><div class="chips" id="g-reply"></div></div>
+        <div class="stepgroup"><span class="label">약속 잡은 뒤</span><div class="chips" id="g-after"></div></div>
+      </div>
+
+      <div class="field" id="hookBox">
+        <span class="label">전산에서 본 연락할 거리 (강한 것부터, 첫 문자엔 2개까지 들어가요)</span>
+        <div class="chips" id="hooks"></div>
+      </div>
+
+      <div class="row" id="slotBox" hidden>
+        <div class="field"><label class="label" for="opt1">일정 후보 1</label><input type="text" id="opt1" value="목요일 저녁 7시"></div>
+        <div class="field"><label class="label" for="opt2">일정 후보 2</label><input type="text" id="opt2" value="금요일 점심 12시"></div>
+      </div>
+      <div class="row" id="remindBox" hidden>
+        <div class="field"><label class="label" for="when">약속 시간</label><input type="text" id="when" value="내일 저녁 7시"></div>
+        <div class="field"><label class="label" for="place">장소</label><input type="text" id="place" value="광명역 근처 OO카페"></div>
+      </div>
+
+      <label class="toggle" id="adToggle"><input type="checkbox" id="ad" checked>
+        <span>(광고) 표기와 수신거부 안내 넣기<br><span class="hint">필요 여부는 회사 준법 기준에 맞춰 정하세요.</span></span></label>
+
+      <div class="notice" id="night" hidden>지금은 밤 9시~아침 8시 사이예요. 이 시간 광고성 문자는 별도 동의가 필요하니 내일 낮에 보내세요.</div>
+
+      <div class="phone">
+        <div class="to"><span>받는 사람 <b id="toLabel">번호를 입력하세요</b></span><button type="button" class="small" id="copyPhone">번호 복사</button></div>
+        <label class="label" for="msg">보낼 문구 (직접 고쳐도 돼요)</label>
+        <textarea id="msg" rows="10"></textarea>
+        <div class="meter"><span id="bytes"></span><span class="kind" id="kind">SMS</span></div>
+      </div>
+      <p class="hint">이름, 단계, 연락할 거리를 바꾸면 문구가 다시 만들어져요. 직접 고친 내용은 그때 사라집니다.</p>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </section>
+  </div>
+</div>
+
+<div class="bar">
+  <a class="btn primary" id="send" href="#" aria-disabled="true">문자 앱 열기</a>
+  <button type="button" id="copy">문구 복사</button>
+  <button type="button" id="done">보냄 표시</button>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const STEPS = [
+    {id:'first', g:'seq', label:'첫 연락', d:'1일차', mark:'1차', ad:true},
+    {id:'second', g:'seq', label:'재연락', d:'2일차', mark:'2차', ad:true},
+    {id:'last', g:'seq', label:'마지막', d:'4일차', mark:'3차', ad:true},
+    {id:'summary', g:'reply', label:'"네" → 요약+약속', mark:'요약'},
+    {id:'who', g:'reply', label:'"신청 안 했는데요"', mark:'해명'},
+    {id:'cost', g:'reply', label:'"돈 드는 거예요?"', mark:'비용'},
+    {id:'later', g:'reply', label:'"나중에요"', mark:'보류'},
+    {id:'remind', g:'after', label:'전날 리마인드', mark:'리마인드'}
+  ];
+  // strongest first
+  const HOOKS = [
+    {id:'lapse', label:'실효 보험', first:'효력이 끊겨 보이는 보험이 있어요', sum:'효력이 끊긴 것으로 보이는 보험이 있어요 → 되살릴 수 있는지 확인이 필요해요'},
+    {id:'silson', label:'실손 중복', first:'실손보험이 겹쳐 보이는 부분이 있어요', sum:'실손보험이 2개로 보여요 → 실손은 중복 보상이 안 돼서 점검이 필요해요'},
+    {id:'renew', label:'갱신형 많음', first:'갱신 때 보험료가 오를 수 있는 보험이 있어요', sum:'갱신형 보험이 있어요 → 갱신 때 보험료가 얼마나 바뀌는지 확인해 보면 좋아요'},
+    {id:'age', label:'상령일 임박', first:'곧 보험나이가 바뀌는 시점이에요', sum:'곧 보험나이가 한 살 올라가요 → 그 전에 한 번 점검해 두면 좋아요'},
+    {id:'maturity', label:'만기·완납 임박', first:'만기나 납입 완료가 다가오는 보험이 있어요', sum:'만기나 납입 완료가 다가오는 보험이 있어요 → 이후 보장이 어떻게 되는지 확인이 필요해요'},
+    {id:'gap', label:'부족 항목', first:'보장이 비어 보이는 부분이 있어요', sum:'입원 첫날 보장처럼 부족해 보이는 항목이 있어요'},
+    {id:'overlap', label:'보장 겹침·보험료 부담', first:'보장이 겹쳐 보이는 부분이 있어요', sum:'보장이 겹치는 부분이 있어서 보험료를 점검해 볼 여지가 있어요'}
+  ];
+  const NUM = ['①','②','③','④','⑤','⑥','⑦'];
+
+  const st = {
+    queue:[
+      {id:1,name:'김예시',phone:'010-0000-0001',sent:{},ex:true},
+      {id:2,name:'이예시',phone:'010-0000-0002',sent:{first:true},ex:true},
+      {id:3,name:'박예시',phone:'010-0000-0003',sent:{first:true,second:true},ex:true}
+    ],
+    cur:1, step:'first', hooks:new Set(['lapse','overlap']), nextId:4
+  };
+
+  // remember only the sender name
+  try{ const m = localStorage.getItem('sms-helper-me'); if(m) $('me').value = m; }catch(e){}
+
+  function fmtPhone(v){
+    const d = (v||'').replace(/\D/g,'').slice(0,11);
+    if(d.length<4) return d;
+    if(d.length<8) return d.slice(0,3)+'-'+d.slice(3);
+    if(d.length===10) return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
+    return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);
+  }
+  const digits = v => (v||'').replace(/\D/g,'');
+  const me = () => ($('me').value.trim() || 'OOO');
+  const nm = () => ($('name').value.trim() ? $('name').value.trim()+'님' : '고객님');
+  const stepOf = id => STEPS.find(s=>s.id===id);
+  const chosenHooks = () => HOOKS.filter(h=>st.hooks.has(h.id));
+
+  function build(){
+    const n = nm(), m = me(), hs = chosenHooks();
+    let t;
+    switch(st.step){
+      case 'first': {
+        const top = hs.slice(0,2);
+        t = `안녕하세요 ${n}, 굿리치 ${m} 매니저입니다.\n예전에 굿리치에서 보험 조회를 해두신 기록이 있어, 가입하신 보험을 정리한 결과지가 있어 연락드렸어요.\n`;
+        t += top.length ? `살펴보니 이런 부분이 보여요.\n${top.map(h=>'· '+h.first).join('\n')}\n` : `중복되거나 빠진 보장이 있는지 한눈에 보실 수 있어요.\n`;
+        t += `문자로 간단히 요약해 보내드릴까요? 원하시면 "네"라고만 답장 주세요.`;
+        break; }
+      case 'second':
+        t = `${n}, 얼마 전 연락드린 굿리치 ${m} 매니저입니다. 바쁘실 것 같아 문자로 다시 남겨요.\n보험 정리 결과지는 문자로 먼저 요약해 드릴 수 있어요. 필요하시면 "네"라고만 답장 주세요.`;
+        break;
+      case 'last':
+        t = `${n}, 굿리치 ${m} 매니저입니다. 마지막으로 연락드려요.\n나중에라도 보험 정리가 필요하시면 이 번호로 문자 한 통만 주세요. 좋은 하루 보내세요.`;
+        break;
+      case 'summary': {
+        const list = hs.length ? hs : [HOOKS[6]];
+        t = `감사합니다! 예전 조회 기준으로 정리하면 이래요.\n${list.map((h,i)=>NUM[i]+' '+h.sum).join('\n')}\n정확한 건 가입하신 보험을 같이 보면서 20분이면 정리돼요. ${$('opt1').value.trim()||'목요일'}이나 ${$('opt2').value.trim()||'금요일'} 중 편한 시간 있으세요? (직접 뵙거나 화상 모두 가능해요)`;
+        break; }
+      case 'who':
+        t = `네, 기억 안 나실 수 있어요. 굿리치에서 보험 조회에 동의하셨던 기록으로 정리된 결과예요.\n필요 없으시면 더 연락드리지 않을게요. 혹시 궁금하시면 "네"라고만 답장 주세요.`;
+        break;
+      case 'cost':
+        t = `상담 비용은 따로 없어요. 지금 가입하신 보험을 정리해서 보여드리는 거라, 보시고 새로 가입하지 않으셔도 괜찮아요.\n${$('opt1').value.trim()||'목요일'}이나 ${$('opt2').value.trim()||'금요일'} 중 20분 정도 편한 시간 있으세요?`;
+        break;
+      case 'later':
+        t = `네, 알겠습니다. 편하실 때 이 번호로 문자 한 통만 주세요. 그때 바로 정리해서 보여드릴게요.`;
+        break;
+      case 'remind':
+        t = `${n}, 굿리치 ${m} 매니저입니다. ${$('when').value.trim()||'내일'} ${$('place').value.trim()||''}에서 뵙겠습니다.\n가입하신 보험 증권이나 보험사 앱 화면이 있으면 더 정확하게 봐드릴 수 있어요. 일정이 바뀌면 편하게 문자 주세요.`;
+        break;
+    }
+    const s = stepOf(st.step);
+    if(s.ad && $('ad').checked) t = `(광고) ${t}\n수신을 원치 않으시면 "거부"라고 답장 주세요.`;
+    return t.replace(/ {2,}/g,' ').replace(/ 에서/,'에서');
+  }
+
+  // EUC-KR style byte count: non-ASCII = 2 bytes
+  function bytes(s){ let b=0; for(const ch of s){ b += ch.charCodeAt(0) > 127 ? 2 : 1; } return b; }
+
+  function refreshMsg(){
+    $('msg').value = build();
+    refreshMeter(); refreshSend();
+  }
+  function refreshMeter(){
+    const b = bytes($('msg').value);
+    $('bytes').textContent = `${b.toLocaleString()} / ${b<=90?90:2000} byte`;
+    $('kind').textContent = b<=90 ? 'SMS' : (b<=2000 ? 'LMS 장문' : '너무 길어요');
+  }
+  function refreshSend(){
+    const d = digits($('phone').value);
+    const ok = d.length>=10;
+    $('toLabel').textContent = ok ? fmtPhone(d) : '번호를 입력하세요';
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    $('send').href = ok ? `sms:${d}${ios?'&':'?'}body=${encodeURIComponent($('msg').value)}` : '#';
+    $('send').setAttribute('aria-disabled', ok ? 'false' : 'true');
+  }
+
+  function renderSteps(){
+    ['seq','reply','after'].forEach(g=>{
+      $('g-'+g).innerHTML = STEPS.filter(s=>s.g===g).map(s=>
+        `<label class="chip"><input type="radio" name="step" value="${s.id}" ${s.id===st.step?'checked':''}>${s.label}${s.d?` <span class="d">${s.d}</span>`:''}</label>`).join('');
+    });
+    const showHooks = ['first','summary'].includes(st.step);
+    $('hookBox').hidden = !showHooks;
+    $('slotBox').hidden = !['summary','cost'].includes(st.step);
+    $('remindBox').hidden = st.step!=='remind';
+    $('adToggle').hidden = !stepOf(st.step).ad;
+  }
+  function renderHooks(){
+    $('hooks').innerHTML = HOOKS.map(h=>`<label class="chip"><input type="checkbox" value="${h.id}" ${st.hooks.has(h.id)?'checked':''}>${h.label}</label>`).join('');
+  }
+  function renderQueue(){
+    const q = $('queue');
+    if(!st.queue.length){ q.innerHTML = '<li class="hint">아래에 고객을 넣거나, 오른쪽에 직접 입력하세요.</li>'; }
+    else q.innerHTML = st.queue.map(c=>{
+      const ticks = STEPS.filter(s=>c.sent[s.id]).map(s=>`<span class="tick done">${s.mark} ✓</span>`).join('') || '<span class="tick">대기</span>';
+      return `<li><button type="button" data-id="${c.id}" aria-current="${c.id===st.cur}"><span class="qleft"><span class="qname">${esc(c.name)}</span><span class="qphone">${esc(c.phone)}</span></span><span class="ticks">${ticks}</span></button></li>`;
+    }).join('');
+    $('exampleTag').hidden = !st.queue.some(c=>c.ex);
+  }
+  const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function load(id, keepStep){
+    const c = st.queue.find(x=>x.id===id); if(!c) return;
+    st.cur = id; $('name').value = c.name; $('phone').value = c.phone;
+    // jump to the next sequence step this customer hasn't received
+    const next = ['first','second','last'].find(s=>!c.sent[s]);
+    if(!keepStep && next && ['first','second','last'].includes(st.step)) st.step = next;
+    renderSteps(); renderQueue(); refreshMsg(); $('status').textContent='';
+  }
+
+  function say(t){ $('status').textContent = t; }
+  async function copy(text, okMsg, fallbackEl){
+    try{ await navigator.clipboard.writeText(text); say(okMsg); }
+    catch(e){ if(fallbackEl){ fallbackEl.focus(); fallbackEl.select?.(); } say('자동 복사가 막혀 있어요. 선택된 내용을 길게 눌러 복사하세요.'); }
+  }
+
+  // events
+  document.addEventListener('change', e=>{
+    if(e.target.name==='step'){ st.step = e.target.value; renderSteps(); refreshMsg(); }
+    if(e.target.closest('#hooks')){ e.target.checked ? st.hooks.add(e.target.value) : st.hooks.delete(e.target.value); refreshMsg(); }
+    if(e.target.id==='ad') refreshMsg();
+  });
+  ['name','opt1','opt2','when','place'].forEach(id=>$(id).addEventListener('input', refreshMsg));
+  $('me').addEventListener('input', ()=>{ try{localStorage.setItem('sms-helper-me',$('me').value.trim())}catch(e){} refreshMsg(); });
+  $('phone').addEventListener('input', refreshSend);
+  $('phone').addEventListener('blur', ()=>{ $('phone').value = fmtPhone($('phone').value); refreshSend(); });
+  $('msg').addEventListener('input', ()=>{ refreshMeter(); refreshSend(); });
+
+  $('queue').addEventListener('click', e=>{ const b=e.target.closest('button[data-id]'); if(b) load(+b.dataset.id); });
+  $('addBulk').addEventListener('click', ()=>{
+    const lines = $('bulk').value.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+    let added=0, skipped=0;
+    if(lines.length) st.queue = st.queue.filter(c=>!c.ex);
+    lines.forEach(l=>{
+      const m = l.match(/(01[0-9][\s-]?\d{3,4}[\s-]?\d{4})/);
+      if(!m){ skipped++; return; }
+      const name = l.replace(m[1],'').replace(/[,\t|]/g,' ').trim() || '이름 없음';
+      st.queue.push({id:st.nextId++, name, phone:fmtPhone(m[1]), sent:{}}); added++;
+    });
+    $('bulk').value='';
+    renderQueue();
+    if(added) load(st.queue[st.queue.length-added].id);
+    say(added ? `${added}명 추가했어요.${skipped?` 번호를 못 찾은 ${skipped}줄은 건너뛰었어요.`:''}` : '번호를 찾지 못했어요. "이름 010-1234-5678" 형식으로 넣어주세요.');
+  });
+  $('clearAll').addEventListener('click', ()=>{ st.queue=[]; st.cur=null; renderQueue(); say('목록을 비웠어요.'); });
+
+  $('copy').addEventListener('click', ()=>copy($('msg').value,'문구를 복사했어요. 문자 앱에 붙여넣으세요.',$('msg')));
+  $('copyPhone').addEventListener('click', ()=>{ const d=digits($('phone').value); if(d.length<10){say('번호를 먼저 입력하세요.');return;} copy(fmtPhone(d),'번호를 복사했어요.'); });
+  $('send').addEventListener('click', e=>{ if($('send').getAttribute('aria-disabled')==='true'){ e.preventDefault(); say('휴대폰 번호를 먼저 입력하세요.'); } else say('문자 앱이 안 열리면 "문구 복사"를 눌러 붙여넣으세요. 보냈다면 "보냄 표시"를 눌러주세요.'); });
+  $('done').addEventListener('click', ()=>{
+    let c = st.queue.find(x=>x.id===st.cur);
+    const d = digits($('phone').value);
+    if(!c || digits(c.phone)!==d){
+      if(d.length<10){ say('번호를 먼저 입력하세요.'); return; }
+      c = st.queue.find(x=>digits(x.phone)===d);
+      if(!c){ c={id:st.nextId++, name:$('name').value.trim()||'이름 없음', phone:fmtPhone(d), sent:{}}; st.queue.push(c); }
+    }
+    c.sent[st.step] = true;
+    const label = stepOf(st.step).mark;
+    // move to the next customer who still needs this step
+    const next = st.queue.find(x=>!x.sent[st.step] && x.id!==c.id);
+    renderQueue();
+    if(next){ st.cur=next.id; load(next.id, true); say(`${c.name}님 ${label} 보냄 표시. 다음은 ${next.name}님이에요.`); }
+    else { st.cur=c.id; renderQueue(); say(`${c.name}님 ${label} 보냄 표시. 이 단계는 모두 끝났어요.`); }
+  });
+
+  function nightCheck(){ const h = new Date().getHours(); $('night').hidden = !(h>=21 || h<8); }
+  nightCheck(); setInterval(nightCheck, 60000);
+
+  renderHooks(); renderSteps(); renderQueue(); load(st.cur);
+})();
+</script>
+</body>
+</html>
